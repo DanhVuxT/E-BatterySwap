@@ -6,51 +6,53 @@
 
 - **Bước 1:** Chốt 14 thực thể.
 - **Bước 2:** Rà soát quan hệ giữa các thực thể; các quan hệ cần kiểm chứng được ghi trong [ERD tổng quan](erd-diagram.md).
-- **Bước 3:** Thiết kế thuộc tính theo bốn nhóm; **Nhóm 1 (Role, User, Vehicle) đã chốt các quyết định nghiệp vụ**. Những chi tiết chưa có bản đối chiếu đầy đủ được đánh dấu cần xác nhận thay vì tự suy diễn.
+- **Bước 3:** Thiết kế thuộc tính theo bốn nhóm; **Nhóm 1 (Role, User, Vehicle) đã chốt**.
 - **Bước 4:** Chuẩn hóa, rà soát và hoàn thiện ERD.
 
-## Nhóm 1 – Tài khoản và phương tiện
+## Nhóm 1 – Tài khoản và phương tiện (ĐÃ CHỐT)
 
 ### Role
 
-| Thuộc tính | Vai trò | Ghi chú |
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
 | --- | --- | --- |
-| `RoleId` | Khóa chính (PK) | |
-| `RoleCode` | Mã vai trò | |
-| `RoleName` | Tên vai trò | |
-| `Description` | Mô tả | |
-| `IsActive` | Trạng thái hoạt động | |
+| `RoleId` | `BIGINT` | PK |
+| `RoleCode` | `VARCHAR(30)` | NOT NULL, UNIQUE |
+| `RoleName` | `NVARCHAR(100)` | NOT NULL |
+| `Description` | `NVARCHAR(255)` | NULL |
+| `IsActive` | `BIT` | NOT NULL |
+
+Các mã vai trò đã thống nhất: `ADMIN`, `STAFF`, `CUSTOMER`.
 
 ### User
 
-| Thuộc tính | Vai trò | Ghi chú |
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
 | --- | --- | --- |
-| `UserId` | Khóa chính (PK) | |
-| `RoleId` | Khóa ngoại (FK) → Role | Một tài khoản chỉ có **một vai trò** |
-| `FullName` | Họ tên | |
-| `PhoneNumber` | Số điện thoại | |
-| `Email` | Email đăng nhập | Cần bảo đảm tính duy nhất của định danh đăng nhập |
-| `PasswordHash` | Mật khẩu đã băm | Không lưu mật khẩu dạng rõ |
-| `Status` | Trạng thái tài khoản | |
-| `CreatedAt` | Ngày tạo | |
-| `UpdatedAt` | Ngày cập nhật | |
+| `UserId` | `BIGINT` | PK |
+| `RoleId` | `BIGINT` | FK → Role(RoleId), NOT NULL |
+| `FullName` | `NVARCHAR(150)` | NOT NULL |
+| `PhoneNumber` | `VARCHAR(20)` | NULL |
+| `Email` | `NVARCHAR(254)` | NOT NULL, UNIQUE |
+| `PasswordHash` | `NVARCHAR(512)` | NOT NULL |
+| `Status` | `VARCHAR(20)` | NOT NULL |
+| `CreatedAt` | `DATETIME2(3)` | NOT NULL |
+| `UpdatedAt` | `DATETIME2(3)` | NULL |
+
+Các trạng thái tài khoản được nêu trong thiết kế: `PENDING`, `ACTIVE`, `LOCKED`, `DISABLED`.
 
 ### Vehicle
 
-| Thuộc tính | Vai trò | Ghi chú |
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
 | --- | --- | --- |
-| `VehicleId` | Khóa chính (PK) | |
-| `UserId` | Khóa ngoại (FK) → User | |
-| `LicensePlate` | Biển số | **Bắt buộc nhập** |
-| `ModelName` | Tên dòng xe | |
-| `BatteryCapacityCount` | Số pin sử dụng | |
-| `Status` | Trạng thái xe | |
-| `CreatedAt` | Ngày tạo | |
-| `UpdatedAt` | Ngày cập nhật | |
+| `VehicleId` | `BIGINT` | PK |
+| `UserId` | `BIGINT` | FK → User(UserId), NOT NULL |
+| `LicensePlate` | `NVARCHAR(20)` | NOT NULL, UNIQUE |
+| `ModelName` | `NVARCHAR(100)` | NOT NULL |
+| `BatteryCapacityCount` | `TINYINT` | NOT NULL, CHECK (BatteryCapacityCount IN (1, 2)) |
+| `Status` | `VARCHAR(20)` | NOT NULL |
+| `CreatedAt` | `DATETIME2(3)` | NOT NULL |
+| `UpdatedAt` | `DATETIME2(3)` | NULL |
 
-**Quyết định đã xác nhận:** đăng nhập bằng `Email`; `Vehicle.LicensePlate` bắt buộc; **không lưu VIN** trong bảng `Vehicle`; mỗi `User` chỉ gắn một `Role`.
-
-**Cần đối chiếu bản chốt chi tiết:** kiểu dữ liệu SQL Server, độ dài chuỗi, NULL/NOT NULL, UNIQUE và CHECK của từng cột. Các danh sách thuộc tính ở trên kế thừa bản tổng hợp Nhóm 1; không tự tuyên bố các kiểu dữ liệu và ràng buộc chưa được đối chiếu là đã duyệt.
+**Quyết định đã chốt:** đăng nhập bằng `Email` + mật khẩu; một `User` chỉ gắn một `Role`; `LicensePlate` bắt buộc và duy nhất; không có thuộc tính VIN trong `Vehicle`; mỗi xe sử dụng 1 hoặc 2 viên pin.
 
 ## Nhóm 2 – Pin và trạm
 

@@ -2,7 +2,7 @@
 
 **E-BatterySwap** là đồ án xây dựng **hệ thống quản lý và mô phỏng trạm đổi pin thông minh cho xe máy điện**. Hệ thống gồm ứng dụng khách hàng, ứng dụng web quản lý/giám sát và IoT Simulator mô phỏng hoạt động của trạm mà không cần chế tạo phần cứng thật.
 
-> **Trạng thái:** Đang phân tích và thiết kế. Phạm vi hiện hành tập trung vào vận hành trạm đổi pin thông minh, **không triển khai thuê bao, tính phí hoặc thanh toán**. SRS v0.1 đã được duyệt trước khi điều chỉnh phạm vi này và cần được rà soát/cập nhật tương ứng. Các chức năng mô tả dưới đây là yêu cầu dự kiến, chưa phải tính năng đã hoàn thành.
+> **Trạng thái dự án:** Đang trong giai đoạn thiết kế. Các chức năng dưới đây mô tả phạm vi hệ thống, không phải các tính năng đã triển khai. Phiên bản yêu cầu hiện hành tập trung vào vận hành trạm đổi pin và không bao gồm quản lý thuê bao hoặc thanh toán.
 
 ## 1. Mục tiêu và phạm vi
 
@@ -13,7 +13,7 @@
 - Mô phỏng quá trình sạc tự động và ghi nhận các phiên sạc, bao gồm hoàn thành, gián đoạn hoặc lỗi.
 - Giám sát lệnh điều khiển, sự kiện phản hồi, cảnh báo và giao dịch đổi pin không hoàn tất hoặc hoàn thành một phần.
 
-**Ngoài phạm vi hiện tại:** quản lý gói thuê pin (ServicePlan), thuê bao (Subscription), khoản phí (Charge), thanh toán (Payment), bán xe và chế tạo phần cứng trạm thật. Việc bỏ thuê bao không đồng nghĩa bỏ kiểm tra quyền sử dụng pin.
+**Ngoài phạm vi triển khai:** quản lý gói thuê pin, thuê bao, tính phí, thanh toán, bán xe và chế tạo phần cứng trạm thật. Kiểm tra quyền sử dụng pin vẫn thuộc phạm vi hệ thống.
 
 ## 2. Thành phần hệ thống
 
@@ -62,35 +62,35 @@ Mobile App và Web Application dùng chung Backend API, không truy cập trực
 - Một phiên đổi hai viên có thể **hoàn thành một phần**; phải ghi nhận kết quả của từng viên, không tự động coi toàn phiên thành công.
 - Cần phân biệt **quyền sử dụng pin** với **vị trí vật lý hiện tại** của pin.
 
-> **Chi tiết chưa chốt:** thứ tự đổi 2 viên; ngưỡng SOC/SOH/nhiệt độ khi cấp pin mới; timeout cửa; kiểm tra pin trả; cách ly pin lỗi; cơ chế mất kết nối và khôi phục giao dịch. Các giá trị minh họa trong Simulator sẽ không mặc nhiên được coi là quy tắc nghiệp vụ chính thức.
+> **Các quy tắc vận hành cần đặc tả ở giai đoạn tiếp theo:** thứ tự đổi hai viên, tiêu chí an toàn khi cấp pin, thời gian chờ cửa, xử lý pin trả không hợp lệ và cơ chế phục hồi sau mất kết nối. Tham số mô phỏng không thay thế quy tắc nghiệp vụ.
 
 ## 5. Cơ sở dữ liệu (Database)
 
 Hệ thống dùng **Microsoft SQL Server**. Thiết kế hiện gồm **14 thực thể** phục vụ quản lý tài khoản, phương tiện, pin, trạm, giao dịch đổi pin và giám sát Simulator.
 
 - [ERD tổng quan – danh sách thực thể và quan hệ](docs/database/erd-diagram.md)
-- [Thiết kế CSDL chi tiết – bảng, thuộc tính và quyết định đã chốt](docs/database/erd-design.md)
+- [Đặc tả CSDL – bảng, thuộc tính và ràng buộc](docs/database/erd-design.md)
 
-**Tiến độ:** Đã xác định 14 thực thể; đang hoàn thiện thiết kế chi tiết theo nhóm. Nhóm 1 (Role, User, Vehicle) đã chốt các quyết định về đăng nhập bằng email, biển số xe và một vai trò trên tài khoản. Những ràng buộc chưa được đối chiếu đầy đủ vẫn được đánh dấu trong tài liệu chi tiết.
+**Phạm vi tài liệu:** ERD tổng quan mô tả 14 thực thể. Đặc tả chi tiết hiện có các bảng `Role`, `User`, `Vehicle`; các nhóm bảng còn lại được bổ sung theo tiến độ thiết kế.
 
 ## 6. Công nghệ sử dụng
 
 | Hạng mục | Công nghệ / định hướng | Trạng thái |
 | --- | --- | --- |
-| Ngôn ngữ Backend | **C#** | Đã chọn |
-| Backend Framework | **ASP.NET Core Web API** | Đã chọn |
+| Ngôn ngữ Backend | **C#** | Sử dụng |
+| Backend Framework | **ASP.NET Core Web API** | Sử dụng |
 | Giao tiếp ứng dụng | **REST API** dùng chung Mobile/Web | Định hướng |
-| Mobile App | Chưa chọn framework | Chưa chốt |
-| Web Application | **Một ứng dụng gộp Customer Portal + Admin Dashboard**; framework chưa chọn | Đã chốt mô hình |
-| Database | **Microsoft SQL Server** | Đã chọn |
-| IoT Simulator | Chưa chọn công nghệ cụ thể | Chưa chốt |
-| Giao tiếp thời gian thực | Chưa chốt giao thức/công nghệ | Chưa chốt |
+| Mobile App | Chưa chọn framework | Đang xác định |
+| Web Application | **Một ứng dụng gồm Customer Portal và Admin Dashboard**; framework đang xác định | Thiết kế |
+| Database | **Microsoft SQL Server** | Sử dụng |
+| IoT Simulator | Chưa chọn công nghệ cụ thể | Đang xác định |
+| Giao tiếp thời gian thực | Đang xác định giao thức/công nghệ | Đang xác định |
 
 ## 7. Trạng thái phát triển và tài liệu
 
-- **Phân tích yêu cầu:** Có SRS v0.1 được duyệt trước khi thay đổi phạm vi; **cần cập nhật SRS** để bỏ nghiệp vụ thuê bao/thanh toán và phản ánh phạm vi trạm thông minh.
-- **Thiết kế CSDL:** Đã xác định 14 thực thể và có ERD quan hệ tổng quan. Đang hoàn thiện thuộc tính/ràng buộc theo nhóm; Nhóm 1 đã chốt các quyết định nghiệp vụ cơ bản. Chưa triển khai bảng SQL Server.
-- **Phân tích và thiết kế hệ thống:** Tiếp tục rà soát Use Case, Activity/Sequence Diagram theo phạm vi mới; chưa coi các sơ đồ là đã hoàn tất.
-- **Phát triển và kiểm thử:** Chưa tuyên bố hoàn thành chức năng; sẽ cập nhật cấu trúc nguồn, hướng dẫn chạy, API documentation, demo và kiểm thử khi triển khai.
+- **Phân tích yêu cầu:** SRS v0.1 là phiên bản cơ sở; tài liệu yêu cầu cần cập nhật để phản ánh phạm vi hệ thống trạm đổi pin thông minh hiện hành.
+- **Thiết kế CSDL:** ERD tổng quan gồm 14 thực thể; đặc tả chi tiết hiện có bảng `Role`, `User`, `Vehicle`. Chưa triển khai schema SQL Server.
+- **Phân tích và thiết kế hệ thống:** Use Case, Activity Diagram và Sequence Diagram nằm trong phạm vi tài liệu thiết kế hệ thống.
+- **Phát triển và kiểm thử:** Chưa triển khai chức năng; cấu trúc mã nguồn, hướng dẫn chạy, tài liệu API và kết quả kiểm thử sẽ được bổ sung trong giai đoạn phát triển.
 
 > README mô tả **phạm vi thiết kế hiện hành**, không thay thế SRS. Khi có thay đổi nghiệp vụ, cần đồng bộ tài liệu yêu cầu và kế hoạch trước khi triển khai.

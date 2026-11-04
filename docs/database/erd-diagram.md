@@ -1,10 +1,10 @@
 # ERD tổng quan – E-BatterySwap
 
-> Tài liệu thiết kế CSDL. Nội dung được chuyển từ mục 5 của README trên nhánh `dev` nhằm giữ nguyên lịch sử đề xuất; những nhãn trạng thái trong bản gốc có thể chưa phản ánh các quyết định mới nhất.
+> Sơ đồ khái quát cấu trúc dữ liệu của E-BatterySwap, bao gồm các thực thể nghiệp vụ và liên kết giữa chúng.
 
 ## Các thực thể và quan hệ tổng quan
 
-Danh sách **14 thực thể** đã được chốt ở Bước 1. Các mối quan hệ ở sơ đồ tổng quan bên dưới đang được đề xuất tại Bước 2; chưa chốt thuộc tính, khóa hoặc cấu trúc bảng SQL cụ thể.
+Hệ thống gồm **14 thực thể**, được phân chia theo các nhóm nghiệp vụ. Sơ đồ tổng quan thể hiện quan hệ giữa các thực thể; đặc tả thuộc tính và ràng buộc nằm trong [tài liệu thiết kế CSDL](erd-design.md).
 
 | Nhóm nghiệp vụ | Thực thể | Trách nhiệm chính |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ Danh sách **14 thực thể** đã được chốt ở Bước 1. Các mối qu
 | | **StationEvent** | Sự kiện/phản hồi từ Simulator |
 | | **Alert** | Cảnh báo và trạng thái xử lý |
 
-## ERD tổng quan – Bước 2 (bản đề xuất, chưa duyệt)
+## Sơ đồ quan hệ thực thể
 
 Sơ đồ dưới đây thể hiện đủ **14 thực thể** và các mối quan hệ chính bằng ký hiệu Crow's Foot. Mức 1–N mô tả **lịch sử nhiều bản ghi**, không mặc định rằng mọi thực thể đều bắt buộc có dữ liệu liên quan ngay khi được tạo.
 
@@ -57,15 +57,14 @@ erDiagram
 
 **Lưu ý khi đọc sơ đồ:**
 
-- `VEHICLE` và `BATTERY` có quan hệ **N–N theo lịch sử**, được thể hiện qua `BATTERY_ASSIGNMENT`. Quan hệ hiện tại còn cần ràng buộc riêng.
+- `BATTERY_ASSIGNMENT` ghi nhận lịch sử liên kết giữa `VEHICLE` và `BATTERY`; các ràng buộc đồng thời về quyền sử dụng thuộc đặc tả nghiệp vụ.
 - `SWAP_ITEM` có hai vai trò pin khác nhau: **pin trả** và **pin cấp**. Khi giao dịch đang xử lý hoặc gặp lỗi, một trong hai vai trò có thể chưa được xác định.
 - Quy tắc **mỗi phiên đổi 1 hoặc 2 viên** là ràng buộc nghiệp vụ; ký hiệu Crow's Foot 1–N chưa thể hiện giới hạn trên là 2.
-- Các quan hệ **SLOT–BATTERY (vị trí hiện tại)**, **STATION_COMMAND–STATION_EVENT (phản hồi lệnh)**, **STATION_EVENT–ALERT (nguồn cảnh báo)** là **đề xuất cần kiểm tra**. Không mặc định mọi sự kiện đều phát sinh từ một lệnh hoặc mọi sự kiện đều tạo cảnh báo.
-- Vị trí vật lý của pin, quyền sử dụng khi giao dịch gián đoạn và cách cập nhật dữ liệu từ Simulator sẽ được làm rõ trước khi duyệt ERD logic chi tiết.
+- `SLOT–BATTERY` mô tả vị trí hiện tại của pin; `STATION_COMMAND–STATION_EVENT` liên kết lệnh và phản hồi khi có; `STATION_EVENT–ALERT` liên kết sự kiện với cảnh báo khi có.
+- Quyền sử dụng pin và vị trí vật lý là hai khía cạnh độc lập. Quy trình xử lý giao dịch gián đoạn được mô tả trong đặc tả nghiệp vụ tương ứng.
 
-**Chưa đưa vào phạm vi:** ServicePlan, Subscription, Charge, Payment. **Chưa cần tách thành thực thể riêng:** BatteryMovement, MaintenanceRecord, AuditLog. Các đối tượng này có thể được xem xét lại nếu có yêu cầu mới.
+**Phạm vi mô hình:** Các thực thể trên phục vụ vận hành và giám sát trạm đổi pin; các nghiệp vụ thuê bao, tính phí và thanh toán không nằm trong phạm vi CSDL.
 
-**Tiến độ ERD:** Bước 1 (xác định thực thể) **đã chốt**; Bước 2 (quan hệ), Bước 3 (thuộc tính/ràng buộc) và ERD hoàn chỉnh **chưa chốt**.
 
 
 Xem [thiết kế bảng và thuộc tính](erd-design.md).

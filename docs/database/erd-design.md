@@ -1,17 +1,16 @@
 # Thiết kế cơ sở dữ liệu – E-BatterySwap
 
-> Tài liệu làm việc trên nhánh `dev`. Thiết kế dùng Microsoft SQL Server. Không coi những nội dung còn mở là ràng buộc đã duyệt.
+> Đặc tả dữ liệu phục vụ triển khai E-BatterySwap trên Microsoft SQL Server. Mỗi bảng gồm thuộc tính, kiểu dữ liệu và các ràng buộc tương ứng.
 
-## Phạm vi và tiến độ
+## Phạm vi đặc tả
 
-- **Bước 1:** Chốt 14 thực thể.
-- **Bước 2:** Rà soát quan hệ giữa các thực thể; các quan hệ cần kiểm chứng được ghi trong [ERD tổng quan](erd-diagram.md).
-- **Bước 3:** Thiết kế thuộc tính theo bốn nhóm; **Nhóm 1 (Role, User, Vehicle) đã chốt**.
-- **Bước 4:** Chuẩn hóa, rà soát và hoàn thiện ERD.
+Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Hiện có đặc tả cho `Role`, `User` và `Vehicle`.
 
-## Nhóm 1 – Tài khoản và phương tiện (ĐÃ CHỐT)
+## Nhóm 1 – Tài khoản và phương tiện
 
 ### Role
+
+Lưu danh mục vai trò dùng trong phân quyền tài khoản.
 
 | Thuộc tính | Kiểu SQL Server | Ràng buộc |
 | --- | --- | --- |
@@ -21,9 +20,11 @@
 | `Description` | `NVARCHAR(255)` | NULL |
 | `IsActive` | `BIT` | NOT NULL |
 
-Các mã vai trò đã thống nhất: `ADMIN`, `STAFF`, `CUSTOMER`.
+Các mã vai trò: `ADMIN`, `STAFF`, `CUSTOMER`.
 
 ### User
+
+Lưu tài khoản người dùng, thông tin xác thực và vai trò được gán. Mỗi tài khoản tham chiếu đến một vai trò thông qua `RoleId`.
 
 | Thuộc tính | Kiểu SQL Server | Ràng buộc |
 | --- | --- | --- |
@@ -37,9 +38,11 @@ Các mã vai trò đã thống nhất: `ADMIN`, `STAFF`, `CUSTOMER`.
 | `CreatedAt` | `DATETIME2(3)` | NOT NULL |
 | `UpdatedAt` | `DATETIME2(3)` | NULL |
 
-Các trạng thái tài khoản được nêu trong thiết kế: `PENDING`, `ACTIVE`, `LOCKED`, `DISABLED`.
+Các trạng thái tài khoản: `PENDING`, `ACTIVE`, `LOCKED`, `DISABLED`.
 
 ### Vehicle
+
+Lưu phương tiện đăng ký sử dụng hệ thống và liên kết với tài khoản quản lý. Biển số là định danh bắt buộc, duy nhất trong hệ thống.
 
 | Thuộc tính | Kiểu SQL Server | Ràng buộc |
 | --- | --- | --- |
@@ -52,7 +55,7 @@ Các trạng thái tài khoản được nêu trong thiết kế: `PENDING`, `AC
 | `CreatedAt` | `DATETIME2(3)` | NOT NULL |
 | `UpdatedAt` | `DATETIME2(3)` | NULL |
 
-**Quyết định đã chốt:** đăng nhập bằng `Email` + mật khẩu; một `User` chỉ gắn một `Role`; `LicensePlate` bắt buộc và duy nhất; không có thuộc tính VIN trong `Vehicle`; mỗi xe sử dụng 1 hoặc 2 viên pin.
+**Quy tắc dữ liệu:** Người dùng đăng nhập bằng email và mật khẩu; mỗi `User` được gán một `Role`; `Vehicle.LicensePlate` là bắt buộc và duy nhất; `BatteryCapacityCount` chỉ nhận giá trị 1 hoặc 2.
 
 ## Nhóm 2 – Pin và trạm
 
@@ -72,8 +75,3 @@ Các trạng thái tài khoản được nêu trong thiết kế: `PENDING`, `AC
 
 *Chưa bổ sung thiết kế thuộc tính.*
 
-## Nguyên tắc bảo trì
-
-- Chỉ thay đổi phần đã chốt khi có quyết định mới, và ghi rõ lý do.
-- Đồng bộ tài liệu này với [ERD tổng quan](erd-diagram.md) khi các mối quan hệ thay đổi.
-- Khi triển khai EF Core, đối chiếu thiết kế với entities và migrations; migration là nguồn phản ánh cấu trúc triển khai.

@@ -4,7 +4,7 @@
 
 ## Phạm vi đặc tả
 
-Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Nhóm 1, Nhóm 2 và Nhóm 3 hiện có đặc tả chi tiết cho 11 thực thể.
+Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Cả 4 nhóm hiện có đặc tả chi tiết cho 14 thực thể.
 
 ## Nhóm 1 – Tài khoản và phương tiện
 
@@ -280,7 +280,113 @@ Lưu chi tiết từng lượt trả pin và nhận pin trong một phiên đổ
 
 ## Nhóm 4 – Mô phỏng và giám sát
 
-`StationCommand`, `StationEvent`, `Alert`.
+### StationCommand
 
-*Chưa bổ sung thiết kế thuộc tính.*
+Lưu các lệnh Backend gửi đến trạm hoặc Simulator và theo dõi trạng thái thực hiện của từng lệnh.
+
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
+| --- | --- | --- |
+| `CommandId` | `BIGINT` | PK |
+| `StationId` | `BIGINT` | FK → Station(StationId), NOT NULL |
+| `SlotId` | `BIGINT` | FK → Slot(SlotId), NULL |
+| `SwapItemId` | `BIGINT` | FK → SwapItem(SwapItemId), NULL |
+| `ChargingSessionId` | `BIGINT` | FK → ChargingSession(ChargingSessionId), NULL |
+| `CommandType` | `VARCHAR(30)` | NOT NULL |
+| `Payload` | `NVARCHAR(MAX)` | NULL |
+| `Status` | `VARCHAR(20)` | NOT NULL |
+| `CreatedAt` | `DATETIME2(3)` | NOT NULL |
+| `SentAt` | `DATETIME2(3)` | NULL |
+| `CompletedAt` | `DATETIME2(3)` | NULL |
+| `RetryCount` | `TINYINT` | NOT NULL, DEFAULT (0) |
+
+**Quy tắc dữ liệu:**
+
+- `CommandType` xác định loại thao tác, ví dụ: `UNLOCK_DOOR`, `LOCK_DOOR`, `START_CHARGING`, `STOP_CHARGING`.
+- `Payload` lưu tham số bổ sung của lệnh theo định dạng JSON; không dùng thay thế các khóa ngoại cần truy vấn trực tiếp.
+- `SlotId` có thể NULL với lệnh áp dụng cho toàn trạm. Khi khác NULL, ô phải thuộc `StationId` của lệnh.
+- `SwapItemId` liên kết lệnh với lượt đổi pin; `ChargingSessionId` liên kết lệnh với phiên sạc. Hai trường có thể NULL nếu lệnh không thuộc các luồng nghiệp vụ này.
+- Các trạng thái lệnh: `PENDING`, `SENT`, `ACKNOWLEDGED`, `SUCCEEDED`, `FAILED`, `TIMEOUT`, `CANCELLED`.
+- `RetryCount` không âm; `SentAt` và `CompletedAt` chỉ được ghi khi lệnh đạt đến các mốc tương ứng. Thời gian hoàn tất không được nhỏ hơn thời gian tạo.
+- Backend quản lý timeout, gửi lại lệnh và chống thực thi lặp; Simulator cần nhận diện lệnh bằng `CommandId` để xử lý idempotent.
+
+### StationEvent
+
+Lưu các sự kiện thực tế do trạm hoặc Simulator gửi về Backend, bao gồm phản hồi lệnh và sự kiện phát sinh độc lập.
+
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
+| --- | --- | --- |
+| `EventId` | `BIGINT` | PK |
+| `StationId` | `BIGINT` | FK → Station(StationId), NOT NULL |
+| `CommandId` | `BIGINT` | FK → StationCommand(CommandId), NULL |
+| `SlotId` | `BIGINT` | FK → Slot(SlotId), NULL |
+| `BatteryId` | `BIGINT` | FK → Battery(BatteryId), NULL |
+| `EventIdentifier` | `VARCHAR(100)` | NOT NULL |
+| `EventType` | `VARCHAR(40)` | NOT NULL |
+| `Payload` | `NVARCHAR(MAX)` | NULL |
+| `OccurredAt` | `DATETIME2(3)` | NOT NULL |
+| `ReceivedAt` | `DATETIME2(3)` | NOT NULL |
+| `ProcessingStatus` | `VARCHAR(20)` | NOT NULL |
+| `ProcessedAt` | `DATETIME2(3)` | NULL |
+| `ProcessingError` | `NVARCHAR(255)` | NULL |
+
+**Quy tắc dữ liệu:**
+
+- `EventType` mô tả loại sự kiện, ví dụ: `COMMAND_ACCEPTED`, `COMMAND_SUCCEEDED`, `COMMAND_FAILED`, `DOOR_OPENED`, `DOOR_CLOSED`, `BATTERY_DETECTED`, `CHARGING_STARTED`, `CHARGING_STOPPED`, `STATION_OFFLINE`, `FAULT_DETECTED`.
+- `CommandId` có thể NULL nếu sự kiện không phải phản hồi của một lệnh cụ thể. Một lệnh có thể phát sinh nhiều sự kiện trong quá trình tiếp nhận và thực hiện.
+- `SlotId` có thể NULL với sự kiện ở cấp trạm. Khi khác NULL, ô phải thuộc `StationId` của sự kiện.
+- `BatteryId` có thể NULL vì không phải sự kiện nào cũng liên quan đến pin. Khi xác định được pin liên quan, lưu khóa ngoại trực tiếp để truy vấn lịch sử sự kiện theo pin.
+- `Payload` lưu dữ liệu chi tiết bổ sung theo định dạng JSON; các định danh dùng để liên kết và truy vấn vẫn được lưu ở các cột riêng.
+- `EventIdentifier` là mã sự kiện do Simulator cung cấp. Tạo `UNIQUE(StationId, EventIdentifier)` để chống ghi nhận trùng sự kiện từ cùng một trạm.
+- `OccurredAt` là thời điểm sự kiện xảy ra tại trạm; `ReceivedAt` là thời điểm Backend nhận được sự kiện. Hai thời điểm có thể khác nhau do độ trễ hoặc mất kết nối.
+- `ProcessingStatus` theo dõi trạng thái xử lý tại Backend, ví dụ: `PENDING`, `PROCESSED`, `FAILED`. `ProcessedAt` và `ProcessingError` ghi nhận kết quả xử lý.
+- Backend cần xử lý sự kiện theo hướng idempotent để sự kiện gửi lại không làm lặp cập nhật trạng thái pin, ô hoặc phiên nghiệp vụ.
+
+### Alert
+
+Lưu các cảnh báo do hệ thống tạo ra khi phát hiện lỗi hoặc tình trạng bất thường tại trạm, phục vụ Admin/Staff theo dõi và xử lý.
+
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
+| --- | --- | --- |
+| `AlertId` | `BIGINT` | PK |
+| `StationId` | `BIGINT` | FK → Station(StationId), NOT NULL |
+| `EventId` | `BIGINT` | FK → StationEvent(EventId), NULL |
+| `AlertType` | `VARCHAR(40)` | NOT NULL |
+| `Severity` | `VARCHAR(20)` | NOT NULL |
+| `Title` | `NVARCHAR(150)` | NOT NULL |
+| `Description` | `NVARCHAR(500)` | NULL |
+| `Status` | `VARCHAR(20)` | NOT NULL |
+| `CreatedAt` | `DATETIME2(3)` | NOT NULL |
+| `AcknowledgedAt` | `DATETIME2(3)` | NULL |
+| `AcknowledgedByUserId` | `BIGINT` | FK → User(UserId), NULL |
+| `ResolvedAt` | `DATETIME2(3)` | NULL |
+| `ResolvedByUserId` | `BIGINT` | FK → User(UserId), NULL |
+
+**Quy tắc dữ liệu:**
+
+- `AlertType` xác định nhóm cảnh báo, ví dụ: `STATION_OFFLINE`, `COMMAND_TIMEOUT`, `DOOR_FAULT`, `LOCK_FAULT`, `CHARGING_FAULT`, `OVER_TEMPERATURE`.
+- `Severity` nhận một trong các mức `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+- `Status` nhận `OPEN`, `ACKNOWLEDGED`, `RESOLVED`. Cảnh báo mới tạo có trạng thái `OPEN`; nhân viên tiếp nhận chuyển sang `ACKNOWLEDGED`; sau khi xử lý xong chuyển sang `RESOLVED`.
+- `EventId` có thể NULL nếu cảnh báo được Backend phát hiện độc lập, ví dụ lệnh timeout hoặc trạm không gửi heartbeat trong thời gian quy định.
+- `AcknowledgedAt` và `AcknowledgedByUserId` ghi nhận thời điểm và tài khoản tiếp nhận cảnh báo. `ResolvedAt` và `ResolvedByUserId` ghi nhận thời điểm và tài khoản xác nhận xử lý xong.
+- Các trường thời gian và người xử lý phải nhất quán với trạng thái cảnh báo; Backend kiểm tra khi chuyển trạng thái.
+- Chi tiết sự kiện kỹ thuật được lưu trong `StationEvent`; `Alert` lưu thông tin cô đọng để hiển thị và theo dõi xử lý.
+
+### Quan hệ
+
+| Thực thể A | Bội số nghiệp vụ | Thực thể B | Ý nghĩa |
+| --- | --- | --- | --- |
+| `Station` | 1–N | `StationCommand` | Một trạm nhận nhiều lệnh điều khiển |
+| `Slot` | 0..1 – 0..N | `StationCommand` | Một lệnh có thể nhắm đến một ô; một ô nhận nhiều lệnh theo thời gian |
+| `SwapItem` | 0..1 – 0..N | `StationCommand` | Một lệnh có thể gắn với một lượt đổi pin; một lượt đổi có thể phát sinh nhiều lệnh |
+| `ChargingSession` | 0..1 – 0..N | `StationCommand` | Một lệnh có thể gắn với một phiên sạc; một phiên sạc có thể phát sinh nhiều lệnh |
+| `Station` | 1–N | `StationEvent` | Một trạm phát sinh nhiều sự kiện |
+| `StationCommand` | 0..1 – 0..N | `StationEvent` | Một sự kiện phản hồi tối đa một lệnh; một lệnh có thể phát sinh nhiều sự kiện |
+| `Slot` | 0..1 – 0..N | `StationEvent` | Sự kiện có thể gắn với một ô; một ô phát sinh nhiều sự kiện |
+| `Battery` | 0..1 – 0..N | `StationEvent` | Sự kiện có thể gắn với một pin; một pin có nhiều sự kiện |
+| `Station` | 1–N | `Alert` | Một trạm có nhiều cảnh báo |
+| `StationEvent` | 0..1 – 0..N | `Alert` | Một cảnh báo có thể bắt nguồn từ một sự kiện; một sự kiện có thể tạo nhiều cảnh báo |
+| `User` | 0..1 – 0..N (vai trò tiếp nhận) | `Alert` | Một tài khoản có thể tiếp nhận nhiều cảnh báo |
+| `User` | 0..1 – 0..N (vai trò xử lý) | `Alert` | Một tài khoản có thể xử lý nhiều cảnh báo |
+
+**Tổng số thuộc tính Nhóm 4:** 38 (`StationCommand`: 12, `StationEvent`: 13, `Alert`: 13).
 

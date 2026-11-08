@@ -4,7 +4,7 @@
 
 ## Phạm vi đặc tả
 
-Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Hiện có đặc tả cho `Role`, `User` và `Vehicle`.
+Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Nhóm 1, Nhóm 2 và Nhóm 3 hiện có đặc tả chi tiết cho 11 thực thể.
 
 ## Nhóm 1 – Tài khoản và phương tiện
 
@@ -217,9 +217,66 @@ Lưu từng quá trình sạc của một viên pin tại một ô chứa, bao g
 
 ## Nhóm 3 – Giao dịch đổi pin
 
-`SwapSession`, `SwapItem`.
+### SwapSession
 
-*Chưa bổ sung thiết kế thuộc tính.*
+Lưu thông tin tổng thể của một phiên đổi pin, gắn với phương tiện và trạm thực hiện. Một phiên có thể gồm một hoặc hai lượt đổi pin tùy sức chứa pin của phương tiện.
+
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
+| --- | --- | --- |
+| `SwapSessionId` | `BIGINT` | PK |
+| `VehicleId` | `BIGINT` | FK → Vehicle(VehicleId), NOT NULL |
+| `StationId` | `BIGINT` | FK → Station(StationId), NOT NULL |
+| `RequestedBatteryCount` | `TINYINT` | NOT NULL, CHECK (RequestedBatteryCount IN (1, 2)) |
+| `Status` | `VARCHAR(30)` | NOT NULL |
+| `StartedAt` | `DATETIME2(3)` | NOT NULL |
+| `EndedAt` | `DATETIME2(3)` | NULL |
+| `FailureReason` | `NVARCHAR(255)` | NULL |
+
+### SwapItem
+
+Lưu chi tiết từng lượt trả pin và nhận pin trong một phiên đổi. Mỗi bản ghi tương ứng với một viên pin được trả và/hoặc một viên pin được cấp; hỗ trợ trường hợp phiên đổi chỉ hoàn thành một phần.
+
+| Thuộc tính | Kiểu SQL Server | Ràng buộc |
+| --- | --- | --- |
+| `SwapItemId` | `BIGINT` | PK |
+| `SwapSessionId` | `BIGINT` | FK → SwapSession(SwapSessionId), NOT NULL |
+| `SequenceNumber` | `TINYINT` | NOT NULL, CHECK (SequenceNumber IN (1, 2)) |
+| `ReturnedBatteryId` | `BIGINT` | FK → Battery(BatteryId), NULL |
+| `IssuedBatteryId` | `BIGINT` | FK → Battery(BatteryId), NULL |
+| `ReturnSlotId` | `BIGINT` | FK → Slot(SlotId), NULL |
+| `IssueSlotId` | `BIGINT` | FK → Slot(SlotId), NULL |
+| `Status` | `VARCHAR(30)` | NOT NULL |
+| `ReturnedAt` | `DATETIME2(3)` | NULL |
+| `IssuedAt` | `DATETIME2(3)` | NULL |
+| `FailureReason` | `NVARCHAR(255)` | NULL |
+| `CreatedAt` | `DATETIME2(3)` | NOT NULL |
+
+**Quy tắc dữ liệu:**
+
+- `RequestedBatteryCount` chỉ nhận 1 hoặc 2. Mỗi phiên có tối đa số `SwapItem` tương ứng với số pin yêu cầu; `UNIQUE(SwapSessionId, SequenceNumber)` bảo đảm thứ tự lượt đổi không bị trùng.
+- `ReturnedBatteryId` và `IssuedBatteryId` ghi nhận pin thực tế được trạm xác nhận, không phải pin dự kiến. Hai trường có thể NULL khi thao tác tương ứng chưa hoàn thành.
+- Khi thao tác trả pin được xác nhận, `ReturnedBatteryId`, `ReturnSlotId` và `ReturnedAt` được ghi nhận. Khi thao tác cấp pin được xác nhận, `IssuedBatteryId`, `IssueSlotId` và `IssuedAt` được ghi nhận.
+- `ReturnSlotId` và `IssueSlotId` lưu vị trí ô chứa thực tế tại thời điểm giao dịch; hai ô phải thuộc trạm được tham chiếu bởi `SwapSession.StationId`. Backend kiểm tra tính nhất quán này khi xử lý giao dịch.
+- Một pin không thể đồng thời là pin trả và pin cấp trong cùng một `SwapItem`; nếu cả hai mã pin có giá trị thì chúng phải khác nhau.
+- `EndedAt` khi có giá trị phải lớn hơn hoặc bằng `StartedAt`.
+- `FailureReason` ở `SwapSession` mô tả lỗi hoặc nguyên nhân thất bại ở cấp toàn phiên; `FailureReason` ở `SwapItem` mô tả lỗi của từng lượt đổi. Chi tiết sự kiện kỹ thuật được lưu tại `StationEvent`.
+- `Status` của phiên và từng lượt đổi được quản lý theo luồng trạng thái nghiệp vụ tại Backend. Trạng thái phiên phải phản ánh kết quả tổng thể, bao gồm trường hợp hoàn thành một phần.
+- Khi thao tác đổi pin được xác nhận, Backend cập nhật `BatteryAssignment` để phản ánh quyền sử dụng pin của phương tiện và cập nhật vị trí hiện tại trong `Battery`. `SwapItem` lưu lịch sử giao dịch, không thay thế hai nguồn dữ liệu này.
+- Không lưu `InitiatedByUserId` trong `SwapSession`; tài khoản quản lý phương tiện có thể được xác định qua `Vehicle.UserId`. Bảng không lưu người thao tác cụ thể tại thời điểm bắt đầu phiên.
+
+### Quan hệ
+
+| Thực thể A | Bội số nghiệp vụ | Thực thể B | Ý nghĩa |
+| --- | --- | --- | --- |
+| `Vehicle` | 1–N | `SwapSession` | Một phương tiện có nhiều phiên đổi pin theo thời gian |
+| `Station` | 1–N | `SwapSession` | Một trạm thực hiện nhiều phiên đổi pin |
+| `SwapSession` | 1–N (tối đa 2) | `SwapItem` | Một phiên gồm một hoặc hai lượt đổi pin |
+| `Battery` | 1–N (vai trò pin trả) | `SwapItem` | Một pin có thể được trả trong nhiều giao dịch theo thời gian |
+| `Battery` | 1–N (vai trò pin cấp) | `SwapItem` | Một pin có thể được cấp trong nhiều giao dịch theo thời gian |
+| `Slot` | 1–N (vai trò ô nhận pin trả) | `SwapItem` | Một ô có thể tiếp nhận pin trả trong nhiều giao dịch |
+| `Slot` | 1–N (vai trò ô cấp pin) | `SwapItem` | Một ô có thể cấp pin trong nhiều giao dịch |
+
+**Tổng số thuộc tính Nhóm 3:** 20 (`SwapSession`: 8, `SwapItem`: 12).
 
 ## Nhóm 4 – Mô phỏng và giám sát
 

@@ -151,8 +151,7 @@ Lưu lịch sử cấp và kết thúc quyền sử dụng từng viên pin cho 
 - `RecordedByUserId` lưu tài khoản ghi nhận thao tác thủ công; có thể NULL với thao tác tự động.
 - `EndedAt` là nguồn dữ liệu xác định hiệu lực: NULL nghĩa là quyền sử dụng đang hiệu lực; khác NULL nghĩa là đã kết thúc. Không lưu `AssignmentStatus` để tránh hai nguồn sự thật.
 - `EndedAt` khi có giá trị phải lớn hơn hoặc bằng `AssignedAt`; áp dụng CHECK (`EndedAt IS NULL OR EndedAt >= AssignedAt`).
-- Tạo filtered unique index trên `BatteryId` với điều kiện `EndedAt IS NULL`: một pin chỉ có tối đa một quyền sử dụng đang hiệu lực.
-- Filtered unique index trên `BatteryId` với điều kiện `EndedAt IS NULL` bảo đảm một pin chỉ có một quyền sử dụng đang hiệu lực. Một xe không được có số quyền sử dụng pin hiệu lực vượt quá `Vehicle.BatteryCapacityCount`; Backend kiểm tra trong transaction.
+- Tạo filtered unique index trên `BatteryId` với điều kiện `EndedAt IS NULL`: một pin chỉ có tối đa một quyền sử dụng đang hiệu lực. Một xe không được có số quyền sử dụng pin hiệu lực vượt quá `Vehicle.BatteryCapacityCount`; Backend kiểm tra trong transaction.
 - Phân biệt quyền sử dụng tại `BatteryAssignment` với vị trí vật lý tại `Battery`; không sử dụng hai thông tin này thay thế cho nhau.
 
 ### BatteryTelemetry
@@ -262,9 +261,10 @@ Lưu chi tiết từng lượt trả pin và nhận pin trong một phiên đổ
 - Khi thao tác trả pin được xác nhận, `ReturnedBatteryId`, `ReturnSlotId` và `ReturnedAt` được ghi nhận. Khi thao tác cấp pin được xác nhận, `IssuedBatteryId`, `IssueSlotId` và `IssuedAt` được ghi nhận.
 - `ReturnSlotId` và `IssueSlotId` lưu vị trí ô chứa thực tế tại thời điểm giao dịch; hai ô phải thuộc trạm được tham chiếu bởi `SwapSession.StationId`. Backend kiểm tra tính nhất quán này khi xử lý giao dịch.
 - Một pin không thể đồng thời là pin trả và pin cấp trong cùng một `SwapItem`; áp dụng CHECK (`ReturnedBatteryId IS NULL OR IssuedBatteryId IS NULL OR ReturnedBatteryId <> IssuedBatteryId`).
-- Bộ ba (`ReturnedBatteryId`, `ReturnSlotId`, `ReturnedAt`) phải cùng NULL hoặc cùng khác NULL; áp dụng CHECK tương ứng. Bộ ba (`IssuedBatteryId`, `IssueSlotId`, `IssuedAt`) áp dụng quy tắc tương tự.
+- Áp dụng CHECK để bộ ba (`ReturnedBatteryId`, `ReturnSlotId`, `ReturnedAt`) cùng NULL hoặc cùng khác NULL: `((ReturnedBatteryId IS NULL AND ReturnSlotId IS NULL AND ReturnedAt IS NULL) OR (ReturnedBatteryId IS NOT NULL AND ReturnSlotId IS NOT NULL AND ReturnedAt IS NOT NULL))`. Áp dụng CHECK tương tự cho (`IssuedBatteryId`, `IssueSlotId`, `IssuedAt`).
 - `EndedAt` khi có giá trị phải lớn hơn hoặc bằng `StartedAt`; áp dụng CHECK (`EndedAt IS NULL OR EndedAt >= StartedAt`).
-- Mỗi `VehicleId` chỉ có một phiên đang mở. Tạo filtered unique index trên `VehicleId` với điều kiện `EndedAt IS NULL`. CHECK trên `SwapSession` phải bảo đảm `PENDING` và `IN_PROGRESS` có `EndedAt IS NULL`, còn `COMPLETED`, `PARTIALLY_COMPLETED`, `FAILED`, `CANCELLED` có `EndedAt IS NOT NULL`.
+- Mỗi `VehicleId` chỉ có một phiên đang mở. Tạo filtered unique index trên `VehicleId` với điều kiện `EndedAt IS NULL`.
+- Áp dụng CHECK: `((Status IN ('PENDING', 'IN_PROGRESS') AND EndedAt IS NULL) OR (Status IN ('COMPLETED', 'PARTIALLY_COMPLETED', 'FAILED', 'CANCELLED') AND EndedAt IS NOT NULL))`.
 - Backend kiểm tra `RequestedBatteryCount <= Vehicle.BatteryCapacityCount` trong transaction.
 - Khi xác nhận pin trả, Backend phải kiểm tra pin đang có `BatteryAssignment` hiệu lực thuộc đúng `VehicleId` của `SwapSession`; thao tác kết thúc quyền cũ và ghi nhận cấp pin mới phải nằm trong cùng transaction.
 - `FailureReason` ở `SwapSession` mô tả lỗi hoặc nguyên nhân thất bại ở cấp toàn phiên; `FailureReason` ở `SwapItem` mô tả lỗi của từng lượt đổi. Chi tiết sự kiện kỹ thuật được lưu tại `StationEvent`.
@@ -347,7 +347,7 @@ Lưu các sự kiện thực tế do trạm hoặc Simulator gửi về Backend,
 - `Payload` lưu dữ liệu chi tiết bổ sung theo định dạng JSON; các định danh dùng để liên kết và truy vấn vẫn được lưu ở các cột riêng.
 - `EventIdentifier` là mã sự kiện do Simulator cung cấp. Tạo UNIQUE constraint trên (`StationId`, `EventIdentifier`) để chống ghi nhận trùng sự kiện từ cùng một trạm.
 - `OccurredAt` là thời điểm sự kiện xảy ra tại trạm; `ReceivedAt` là thời điểm Backend nhận được sự kiện. Hai thời điểm có thể khác nhau do độ trễ hoặc mất kết nối.
-- `ProcessingStatus` nhận `PENDING`, `PROCESSED`, `FAILED`. `ProcessedAt` và `ProcessingError` ghi nhận kết quả xử lý; CHECK yêu cầu `PENDING` thì `ProcessedAt` NULL, `PROCESSED` hoặc `FAILED` thì `ProcessedAt` khác NULL.
+- `ProcessingStatus` nhận `PENDING`, `PROCESSED`, `FAILED`. Áp dụng CHECK: `((ProcessingStatus = 'PENDING' AND ProcessedAt IS NULL) OR (ProcessingStatus IN ('PROCESSED', 'FAILED') AND ProcessedAt IS NOT NULL))`. `ProcessingError` ghi nhận lỗi xử lý khi có.
 - Backend cần xử lý sự kiện theo hướng idempotent để sự kiện gửi lại không làm lặp cập nhật trạng thái pin, ô hoặc phiên nghiệp vụ.
 
 ### Alert
@@ -377,7 +377,7 @@ Lưu các cảnh báo do hệ thống tạo ra khi phát hiện lỗi hoặc tì
 - `Status` nhận `OPEN`, `ACKNOWLEDGED`, `RESOLVED`. Cảnh báo mới tạo có trạng thái `OPEN`; nhân viên tiếp nhận chuyển sang `ACKNOWLEDGED`; sau khi xử lý xong chuyển sang `RESOLVED`.
 - `EventId` có thể NULL nếu cảnh báo được Backend phát hiện độc lập, ví dụ lệnh timeout hoặc trạm không gửi heartbeat trong thời gian quy định.
 - `AcknowledgedAt` và `AcknowledgedByUserId` ghi nhận thời điểm và tài khoản tiếp nhận cảnh báo. `ResolvedAt` và `ResolvedByUserId` ghi nhận thời điểm và tài khoản xác nhận xử lý xong.
-- Các trường thời gian và người xử lý phải nhất quán với trạng thái cảnh báo; áp dụng CHECK: `OPEN` thì bốn trường tiếp nhận/xử lý đều NULL; `ACKNOWLEDGED` thì cặp `AcknowledgedAt`/`AcknowledgedByUserId` khác NULL và cặp `ResolvedAt`/`ResolvedByUserId` NULL; `RESOLVED` thì cả hai cặp đều khác NULL. Thời điểm tiếp nhận và xử lý không được nhỏ hơn `CreatedAt`, thời điểm xử lý không được nhỏ hơn thời điểm tiếp nhận.
+- Các trường thời gian và người xử lý phải nhất quán với trạng thái cảnh báo; áp dụng CHECK theo ba trường hợp: `OPEN` thì `AcknowledgedAt`, `AcknowledgedByUserId`, `ResolvedAt`, `ResolvedByUserId` đều NULL; `ACKNOWLEDGED` thì cặp tiếp nhận khác NULL và cặp xử lý NULL; `RESOLVED` thì cả hai cặp đều khác NULL. Thời điểm tiếp nhận và xử lý không được nhỏ hơn `CreatedAt`, thời điểm xử lý không được nhỏ hơn thời điểm tiếp nhận.
 - Chi tiết sự kiện kỹ thuật được lưu trong `StationEvent`; `Alert` lưu thông tin cô đọng để hiển thị và theo dõi xử lý.
 
 ### Quan hệ

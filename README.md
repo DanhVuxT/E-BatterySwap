@@ -71,6 +71,7 @@ Hệ thống dùng **Microsoft SQL Server**. Thiết kế hiện gồm **14 th�
 - [ERD tổng quan – danh sách thực thể và quan hệ](docs/database/erd-diagram.md)
 - [Đặc tả CSDL – bảng, thuộc tính và ràng buộc](docs/database/erd-design.md)
 - [SQL Server DDL – tạo 14 bảng và các ràng buộc](docs/database/schema.sql)
+- [Demo seed data – dữ liệu mẫu cho tài khoản, xe, trạm, ô chứa và pin](docs/database/seed-data.sql)
 
 **Phạm vi tài liệu:** ERD tổng quan, đặc tả chi tiết và script DDL mô tả 14 thực thể. Script DDL đã được tạo nhưng chưa thực thi trên SQL Server.
 

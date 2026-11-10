@@ -4,7 +4,7 @@
 
 ## Phạm vi đặc tả
 
-Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Cả 4 nhóm hiện có đặc tả chi tiết cho 14 thực thể.
+Mô hình tổng quan gồm 14 thực thể; xem [ERD tổng quan](erd-diagram.md). Tài liệu này trình bày đặc tả chi tiết của các bảng theo nhóm nghiệp vụ. Cả 4 nhóm hiện có đặc tả chi tiết cho 14 thực thể. Script DDL SQL Server tương ứng nằm tại [schema.sql](schema.sql).
 
 ## Nhóm 1 – Tài khoản và phương tiện
 

@@ -7,4 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EBatterySwap.Domain\EBatterySwap.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
 </Project>

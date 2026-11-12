@@ -70,8 +70,10 @@ Hệ thống dùng **Microsoft SQL Server**. Thiết kế hiện gồm **14 th�
 
 - [ERD tổng quan – danh sách thực thể và quan hệ](docs/database/erd-diagram.md)
 - [Đặc tả CSDL – bảng, thuộc tính và ràng buộc](docs/database/erd-design.md)
+- [SQL Server DDL – tạo 14 bảng và các ràng buộc](docs/database/schema.sql)
+- [Demo seed data – dữ liệu mẫu cho tài khoản, xe, trạm, ô chứa và pin](docs/database/seed-data.sql)
 
-**Phạm vi tài liệu:** ERD tổng quan mô tả 14 thực thể. Đặc tả chi tiết hiện có các bảng `Role`, `User`, `Vehicle`; các nhóm bảng còn lại được bổ sung theo tiến độ thiết kế.
+**Phạm vi tài liệu:** ERD tổng quan, đặc tả chi tiết và script DDL mô tả 14 thực thể. Script DDL đã được tạo nhưng chưa thực thi trên SQL Server.
 
 ## 6. Công nghệ sử dụng
 
@@ -89,7 +91,7 @@ Hệ thống dùng **Microsoft SQL Server**. Thiết kế hiện gồm **14 th�
 ## 7. Trạng thái phát triển và tài liệu
 
 - **Phân tích yêu cầu:** SRS v0.1 là phiên bản cơ sở; tài liệu yêu cầu cần cập nhật để phản ánh phạm vi hệ thống trạm đổi pin thông minh hiện hành.
-- **Thiết kế CSDL:** ERD tổng quan gồm 14 thực thể; đặc tả chi tiết hiện có bảng `Role`, `User`, `Vehicle`. Chưa triển khai schema SQL Server.
+- **Thiết kế CSDL:** ERD tổng quan và đặc tả chi tiết gồm 14 thực thể. Chưa triển khai schema SQL Server.
 - **Phân tích và thiết kế hệ thống:** Use Case, Activity Diagram và Sequence Diagram nằm trong phạm vi tài liệu thiết kế hệ thống.
 - **Phát triển và kiểm thử:** Chưa triển khai chức năng; cấu trúc mã nguồn, hướng dẫn chạy, tài liệu API và kết quả kiểm thử sẽ được bổ sung trong giai đoạn phát triển.
 

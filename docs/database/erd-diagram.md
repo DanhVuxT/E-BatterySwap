@@ -8,7 +8,7 @@ Hệ thống gồm **14 thực thể**, được phân chia theo các nhóm nghi
 
 | Nhóm nghiệp vụ | Thực thể | Trách nhiệm chính |
 | --- | --- | --- |
-| Người dùng và phương tiện | **User** | Tài khoản người dùng |
+| Người dùng và phương tiện | **Users** | Tài khoản người dùng |
 | | **Role** | Vai trò và phân quyền |
 | | **Vehicle** | Phương tiện sử dụng dịch vụ đổi pin |
 | Pin và trạm | **Battery** | Viên pin và tình trạng hiện tại |
@@ -29,8 +29,8 @@ Sơ đồ dưới đây thể hiện đủ **14 thực thể** và các mối qu
 
 ```mermaid
 erDiagram
-    ROLE ||--o{ USER : "phan quyen"
-    USER ||--o{ VEHICLE : "quan ly"
+    ROLE ||--o{ USERS : "phan quyen"
+    USERS ||--o{ VEHICLE : "quan ly"
 
     VEHICLE ||--o{ BATTERY_ASSIGNMENT : "duoc cap pin"
     BATTERY ||--o{ BATTERY_ASSIGNMENT : "lich su ban giao"

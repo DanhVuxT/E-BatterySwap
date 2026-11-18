@@ -16,11 +16,15 @@ public static class DependencyInjection
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                "Connection string 'DefaultConnection' was not found.");
+                "Connection string 'DefaultConnection' was not found. " +
+                "Set it with the ConnectionStrings__DefaultConnection environment variable " +
+                "(Docker) or with user-secrets (dotnet run).");
         }
 
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(
+                connectionString,
+                sql => sql.EnableRetryOnFailure()));
 
         return services;
     }

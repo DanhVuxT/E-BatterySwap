@@ -88,6 +88,27 @@ Hệ thống dùng **Microsoft SQL Server**. Thiết kế hiện gồm **14 th�
 | IoT Simulator | Chưa chọn công nghệ cụ thể | Đang xác định |
 | Giao tiếp thời gian thực | Đang xác định giao thức/công nghệ | Đang xác định |
 
+### 6.1. Cấu trúc thư mục dự án
+
+```text
+E-BatterySwap/
+├── docs/
+│   └── database/
+├── src/
+│   ├── EBatterySwap.API/
+│   ├── EBatterySwap.Application/
+│   ├── EBatterySwap.Domain/
+│   └── EBatterySwap.Infrastructure/
+└── README.md
+```
+
+| Project | Trách nhiệm |
+| --- | --- |
+| `EBatterySwap.API` | Tiếp nhận HTTP Request và trả về HTTP Response. |
+| `EBatterySwap.Application` | Xử lý nghiệp vụ ứng dụng. |
+| `EBatterySwap.Domain` | Chứa các thực thể và quy tắc nghiệp vụ cốt lõi. |
+| `EBatterySwap.Infrastructure` | Triển khai truy cập dữ liệu và các dịch vụ hạ tầng. |
+
 ## 7. Trạng thái phát triển và tài liệu
 
 - **Phân tích yêu cầu:** SRS v0.1 là phiên bản cơ sở; tài liệu yêu cầu cần cập nhật để phản ánh phạm vi hệ thống trạm đổi pin thông minh hiện hành.

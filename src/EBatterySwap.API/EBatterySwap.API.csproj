@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>b5b0f0f2-7a3e-4d0c-9a54-3f1d2c8e6e11</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\EBatterySwap.Application\EBatterySwap.Application.csproj" />
